@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-import google.generativeai as genai
+from google import genai
 import os
 
 chatbot_bp = Blueprint('chatbot', __name__)
@@ -8,8 +8,8 @@ SYSTEM_PROMPT = """Saya SaCo, asisten ternak terpercaya Anda.
 HANYA jawab seputar masa kesuburan, siklus reproduksi, tanda estrus, dan waktu IB sapi betina.
 Tolak topik lain dengan sopan dalam Bahasa Indonesia sederhana."""
 
-genai.configure(api_key=os.environ.get('GEMINI_API_KEY'))
-model = genai.GenerativeModel('gemini-1.5-flash')
+client = genai.Client(api_key=os.environ.get('GEMINI_API_KEY'))
+response = client.models.generate_content(model="gemini-2.5-flash", contents=prompt)
 
 @chatbot_bp.route('/api/chat', methods=['POST'])
 def chat():
