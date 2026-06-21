@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MeTernak Pro - Dashboard Sistem Produksi</title>
+    <style>
+        :root {
+            --bg-main: #fcfbfa;
+            --bg-sidebar: #ffffff;
+            --primary-brown: #5c4d43;
+            --accent-tan: #a38a75;
+            --text-dark: #2d2520;
+            --border-light: #eae6e1;
+            --card-shadow: 0 4px 20px rgba(92, 77, 67, 0.05);
+            --success-green: #2e7d32;
+            --warning-amber: #ef6c00;
+            --danger-red: #c62828;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-dark);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar Navigation Layout */
+        .sidebar {
+            width: 260px;
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border-light);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: bold;
+            font-size: 20px;
+            color: var(--primary-brown);
+        }
+
+        .logo-img {
+            width: 100%; /* Sesuai Poin 1: Diubah agar pas di dalam batas lebar sidebar */
+            height: auto;
+            object-fit: cover;
+            mix-blend-mode: multiply;
+        }
+
+        .nav-group {
+            margin-top: 30px;
+        }
+
+        .nav-item {
+            padding: 14px 12px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            color: #7c7067;
+            border: none;
+            background: transparent;
+            width: 100%;
+            text-align: left;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 6px;
+            transition: all 0.2s;
+        }
+
+        .nav-item.active {
+            background: #f5f2ee;
+            color: var(--primary-brown);
+            font-weight: 600;
+        }
+
+        /* Main Workspace Content Portals */
+        .main-workspace {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .top-navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .view-pane {
+            display: none;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .view-pane.active-pane {
+            display: flex;
+        }
+
+        /* Grid Framework */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: var(--card-shadow);
+            border: 1px solid var(--border-light);
+        }
+
+        .card-title {
+            font-size: 12px;
+            color: #8e8278;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+            font-weight: bold;
+        }
+
+        /* Interactive Inputs (48px+ Touch Target Form fields) */
+        .large-input {
+            width: 100%;
+            height: 50px;
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 0 16px;
+            font-size: 16px;
+            color: var(--text-dark);
+            background: #faf9f7;
+            margin-top: 5px;
+            outline: none;
+        }
+
+        .large-input:focus {
+            border-color: var(--accent-tan);
+            background: #ffffff;
+        }
+
+        .btn-action {
+            height: 50px;
+            width: 100%;
+            background: var(--primary-brown);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-action:hover {
+            background: var(--accent-tan);
+        }
+
+        .stream-val {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--primary-brown);
+            margin: 10px 0;
+        }
+
+        .tracking-canvas {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: var(--card-shadow);
+            border: 1px solid var(--border-light);
+            min-height: 250px;
+        }
+
+        /* Camera Stream Element Frame */
+        .video-box {
+            width: 100%;
+            height: 160px;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 8px;
+            position: relative;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .camera-overlay {
+            position: absolute;
+            bottom: 8px;
+            left: 8px;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            padding: 4px 8px;
+            font-size: 11px;
+            border-radius: 4px;
+        }
+
+        /* Persistent Floating SaCo Chatbot Engine Overlay */
+        .saco-widget {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .cow-avatar-btn {
+            width: 80px;
+            height: 80px;
+            background: transparent; /* Sesuai Poin 2: Warna background aslinya dirubah agar transparan murni */
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            border: 3px solid #ffffff;
+            position: relative;
+            user-select: none;
+        }
+
+        .cow-avatar-btn div {
+            font-size: 32px;
+        }
+
+        .pet-hearts {
+            position: absolute;
+            top: -25px;
+            font-size: 22px;
+            animation: floatUp 0.8s ease-out forwards;
+            display: none;
+            pointer-events: none;
+        }
+
+        @keyframes floatUp {
+            0% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+
+            100% {
+                opacity: 0;
+                transform: translateY(-40px) scale(1.3);
+            }
+        }
+
+        .chat-window {
+            width: 340px;
+            height: 420px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+            border: 1px solid var(--border-light);
+            margin-bottom: 15px;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: var(--primary-brown);
+            color: white;
+            padding: 16px;
+            font-weight: bold;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .chat-body {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            background: #faf9f7;
+            font-size: 13px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .msg {
+            padding: 10px 12px;
+            border-radius: 12px;
+            max-width: 85%;
+        }
+
+        .msg.bot {
+            background: #eae6e1;
+            align-self: flex-start;
+            color: var(--text-dark);
+        }
+
+        .msg.user {
+            background: var(--accent-tan);
+            align-self: flex-end;
+            color: white;
+        }
+
+        .chat-footer {
+            padding: 12px;
+            border-top: 1px solid var(--border-light);
+            display: flex;
+            gap: 8px;
+        }
+
+        .chat-footer input {
+            flex: 1;
+            height: 40px;
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 0 12px;
+            outline: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="sidebar">
+        <div>
+            <div class="logo-area">
+                <img src="LOGO.png" alt="MeTernak" class="logo-img">
+                <span>MeTernak</span>
+            </div>
+            <div class="nav-group">
+                <button class="nav-item active" onclick="switchTab(event, 'dashboardPane')">Dashboard Pemantauan</button>
+                <button class="nav-item" onclick="switchTab(event, 'pengaturanDataPane')">Pengaturan Data Sapi</button>
+            </div>
+        </div>
+        <div style="font-size: 11px; color: var(--accent-tan); font-weight: 600;" id="sidebarSessionStatus">ID Sapi: Belum Diatur</div>
+    </nav>
+
+    <main class="main-workspace">
+
+        <div id="dashboardPane" class="view-pane active-pane">
+            <header class="top-navbar">
+                <div>
+                    <h2 id="dashHeadline">Pemantauan Parameter Lapangan</h2>
+                    <p style="font-size: 13px; color:#7c7067; margin-top:4px;" id="dashSubline">Silakan lengkapi parameter di bawah untuk memicu inferensi hibrida.</p>
+                </div>
+            </header>
+
+            <section class="metrics-grid">
+                <div class="card">
+                    <div class="card-title">1. Kamera Lendir (YOLO)</div>
+                    <div class="video-box">
+                        <video id="webcamView" autoplay playsinline muted></video>
+                        <div class="camera-overlay" id="yoloResultTag">Kamera Nonaktif</div>
+                    </div>
+                    <div style="display:flex; gap:6px;">
+                        <button class="btn-action" style="height:36px; font-size:12px;" onclick="startWebcam()">Buka Kamera</button>
+                        <button class="btn-action" style="height:36px; font-size:12px; background:var(--accent-tan);" onclick="simulateMucusDetection()">Pindai Warna</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">2. Input Suhu Manual</div>
+                    <label style="font-size:11px; color:#7c7067;">Suhu Tubuh Ternak (°C)</label>
+                    <input type="number" id="dashTemperature" class="large-input" placeholder="Contoh: 38.5" step="0.1" oninput="runHybridInferencePipeline()">
+                </div>
+
+                <div class="card">
+                    <div class="card-title">3. Resistansi Lendir (ESP32)</div>
+                    <div class="stream-val" id="dashIotOhm">-- Ω</div>
+                    <div style="font-size: 11px; color: var(--success-green); display: flex; align-items: center; gap: 4px;">
+                        <span style="width:6px; height:6px; background:var(--success-green); border-radius:50%;"></span>
+                        Aliran Telemetri Aktif
+                    </div>
+                </div>
+
+                <div class="card" id="decisionPanel" style="transition: all 0.3s; display:flex; flex-direction:column; justify-content:space-between;">
+                    <div class="card-title">4. Keputusan Akhir IB</div>
+                    <div id="decisionText" style="font-size:16px; font-weight:bold; color:var(--primary-brown);">Menunggu Seluruh Parameter...</div>
+                    <div style="font-size:11px; color:#8e8278; margin-top:10px;">Diproses Berdasarkan Aturan Model Random Forest</div>
+                </div>
+            </section>
+
+            <section class="tracking-canvas">
+                <h3 style="color: var(--primary-brown); margin-bottom: 12px;">Histori Rangkaian Waktu Deret Estrus (Siklus 3 Hari)</h3>
+                <div style="width:100%; height:80%; background:#faf9f7; border:1px dashed var(--accent-tan); border-radius:12px; padding:15px; overflow-y:auto;" id="lstmLogContainer">
+                    <p style="color:#8e8278; font-size:13px; text-align:center; padding-top:40px;">Belum ada rangkaian data sekuensial estrus yang terekam oleh LSTM.</p>
+                </div>
+            </section>
+        </div>
+
+        <div id="pengaturanDataPane" class="view-pane">
+            <header class="top-navbar">
+                <h2>Formulir Pengaturan Data (Dataset Identitas Sapi & Pemilik)</h2>
+                <div style="font-size: 13px; color: var(--accent-tan);">Pelengkap dataset primer untuk identifikasi di Supabase</div>
+            </header>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                <section class="card" style="display: flex; flex-direction: column; gap: 16px;">
+                    <h3 style="color: var(--primary-brown); font-size:15px;">Lengkapi Data Profil</h3>
+                    <div>
+                        <label style="font-size: 12px; font-weight: 600;">Nama Lengkap Peternak</label>
+                        <input type="text" id="regFarmerName" class="large-input" placeholder="Masukkan nama Anda">
+                    </div>
+                    <div>
+                        <label style="font-size: 12px; font-weight: 600;">Alamat Lengkap Kandang</label>
+                        <input type="text" id="regFarmAddress" class="large-input" placeholder="Masukkan alamat kandang lengkap">
+                    </div>
+                    <div>
+                        <label style="font-size: 12px; font-weight: 600;">ID / Nomor Tag Sapi</label>
+                        <input type="text" id="regCattleId" class="large-input" placeholder="Contoh: Sapi #102">
+                    </div>
+                    <div>
+                        <label style="font-size: 12px; font-weight: 600;">Umur Sapi (Bulan/Tahun)</label>
+                        <input type="text" id="regCattleAge" class="large-input" placeholder="Contoh: 24 Bulan atau 2 Tahun">
+                    </div>
+                    <button class="btn-action" style="margin-top: 10px;" onclick="updateDatasetIdentity()">
+                        Perbarui Profil & Kirim Dokumen ke Backend
+                    </button>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <div class="saco-widget">
+        <div class="chat-window" id="sacoChat">
+            <div class="chat-header">
+                <span>Asisten Virtual SaCo Pro</span>
+                <span style="cursor:pointer;" onclick="toggleChatWindow()">✕</span>
+            </div>
+            <div class="chat-body" id="chatBody">
+                <div class="msg bot">Halo! Saya SaCo. Silakan tanyakan apa saja seputar penanganan siklus subur sapi betina!</div>
+            </div>
+            <div class="chat-footer">
+                <input type="text" id="chatInput" placeholder="Ketik pertanyaan konsultasi...">
+                <button class="btn-action" style="width:auto; padding:0 15px; height:40px;" onclick="sendChatMessage()">Kirim</button>
+            </div>
+        </div>
+
+        <div class="cow-avatar-btn" onclick="toggleChatWindow()" oncontextmenu="petCowAvatar(event); return false;" title="Klik Kiri: Buka Chat | Klik Kanan: Elus Kepala SaCo" style="overflow: visible;">
+            <div class="pet-hearts" id="heartIcon" style="left: 50%; transform: translateX(-50%); font-size: 24px;">💖</div>
+            <img src="SaCo.png" alt="SaCo Chatbot" id="sacoImg" style="width: 100%; height: 100%; object-fit: contain; display: block; pointer-events: none; user-select: none;">
+        </div>
+    </div>
+
+    <script>
+        // Local State Object Dataset Schema Representation
+        let currentSession = {
+            farmerName: 'Peternak Umum',
+            farmAddress: 'Kandang Utama',
+            cattleId: 'Belum Diatur',
+            cattleAge: 'Belum Diatur', // Sesuai Poin 3: State penampung umur sapi baru
+            currentMucusColor: '',
+            lstmTimeSeries: []
+        };
+
+        // Tab Navigation Window Controller Logic Route
+        function switchTab(event, targetPaneId) {
+            document.querySelectorAll('.view-pane').forEach(p => p.classList.remove('active-pane'));
+            document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+            document.getElementById(targetPaneId).classList.add('active-pane');
+            if (event) event.currentTarget.classList.add('active');
+        }
+
+        // 1. Modul Pengaturan Data - Update Dataset Profiles Mapping Method
+        function updateDatasetIdentity() {
+            const name = document.getElementById('regFarmerName').value.trim();
+            const address = document.getElementById('regFarmAddress').value.trim();
+            const cid = document.getElementById('regCattleId').value.trim();
+            const cage = document.getElementById('regCattleAge').value.trim(); // Sesuai Poin 3: Membaca input umur
+
+            if (!name || !address || !cid || !cage) {
+                alert("Peringatan: Mohon isi seluruh parameter kolom identitas agar pengiriman dataset ke backend valid!");
+                return;
+            }
+
+            currentSession.farmerName = name;
+            currentSession.farmAddress = address;
+            currentSession.cattleId = cid;
+            currentSession.cattleAge = cage; // Sesuai Poin 3: Menyimpan nilai umur
+
+            // Sync structural parameters across navbar fields
+            document.getElementById('sidebarSessionStatus').innerText = `ID Sapi: ${cid} (${cage})`;
+            document.getElementById('dashHeadline').innerText = `Pemantauan Pembiakan: ${cid}`;
+            document.getElementById('dashSubline').innerText = `Pemilik: ${name} | Lokasi: ${address} | Umur: ${cage}`;
+
+            alert(`✓ Dataset Identitas [${cid}] Berhasil Diperbarui secara lokal dan siap disinkronisasikan!`);
+            switchTab(null, 'dashboardPane');
+            document.querySelectorAll('.nav-item')[0].classList.add('active');
+            document.querySelectorAll('.nav-item')[1].classList.remove('active');
+        }
+
+        // 2. YOLO Camera Stream Preview Control Handler
+        async function startWebcam() {
+            const video = document.getElementById('webcamView');
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                video.srcObject = stream;
+                document.getElementById('yoloResultTag').innerText = "📷 Lensa YOLO Aktif Memantau";
+            } catch (err) {
+                alert("Modul kamera hardware gagal diakses: " + err.message);
+            }
+        }
+
+        // 3. Real-Time Visual Mucus Detection Rules Evaluation Matrix (YOLO Processing)
+        function simulateMucusDetection() {
+            const colors = ['transparant', 'darah', 'kuning'];
+            const pickedColor = colors[Math.floor(Math.random() * colors.length)];
+            currentSession.currentMucusColor = pickedColor;
+
+            const tag = document.getElementById('yoloResultTag');
+
+            if (pickedColor === 'transparant') {
+                tag.innerHTML = "🟢 DETEKSI: Lendir Transparan (Estrus Hari 1)";
+                tag.style.background = "var(--success-green)";
+                updateLstmTimeSeriesHistory("Hari 1: Karakteristik lendir terdeteksi transparan bening encer. Siklus awal estrus terekam.");
+            } else if (pickedColor === 'darah') {
+                tag.innerHTML = "🟡 DETEKSI: Lendir Berdarah (Estrus Hari 3)";
+                tag.style.background = "var(--warning-amber)";
+                updateLstmTimeSeriesHistory("Hari 3: Terjadi vaskularisasi bercak merah/darah. Fase kritis akhir estrus (ovulasi).");
+            } else if (pickedColor === 'kuning') {
+                tag.innerHTML = "🔴 DETEKSI: Lendir Kuning Keruh (Abnormal)";
+                tag.style.background = "var(--danger-red)";
+                updateLstmTimeSeriesHistory("Peringatan Sistem: Lendir berwarna kuning. Sapi terindikasi bunting atau mengalami gangguan medis.");
+            }
+
+            runHybridInferencePipeline();
+        }
+
+        // 4. Time-Series Tracking Engine Sequence Logger (LSTM Logger Framework)
+        function updateLstmTimeSeriesHistory(logEntryText) {
+            const container = document.getElementById('lstmLogContainer');
+            if (currentSession.lstmTimeSeries.length === 0) container.innerHTML = '';
+
+            const timeLabel = new Date().toLocaleTimeString();
+            const element = document.createElement('div');
+            element.style.cssText = "background: white; padding: 10px; border-radius: 8px; margin-bottom: 8px; border-left: 4px solid var(--accent-tan); font-size:13px;";
+            element.innerHTML = `<b>[${timeLabel}]</b> ${logEntryText}`;
+
+            container.appendChild(element);
+            currentSession.lstmTimeSeries.push({ timestamp: timeLabel, detail: logEntryText });
+        }
+
+        // 5. Automated ESP32 Telemetry Loop Driver Emulation Handler
+        function initEsp32TelemetryStream() {
+            setInterval(() => {
+                const generatedOhm = Math.floor(Math.random() * (560 - 340 + 1)) + 340;
+                document.getElementById('dashIotOhm').innerText = generatedOhm + " Ω";
+                runHybridInferencePipeline();
+            }, 3000);
+        }
+
+        // ================= PIPELINE INTERPRETER: INTEGRASI HYBRID MODEL (RANDOM FOREST) =================
+        function runHybridInferencePipeline() {
+            const mucus = currentSession.currentMucusColor;
+            const temperatureInput = document.getElementById('dashTemperature').value;
+            const panel = document.getElementById('decisionPanel');
+            const outputText = document.getElementById('decisionText');
+
+            if (!mucus || !temperatureInput) {
+                outputText.innerText = "Lengkapi Parameter Pindai Kamera YOLO dan Nilai Suhu Tubuh Manual...";
+                panel.style.background = "#ffffff";
+                outputText.style.color = "var(--primary-brown)";
+                return;
+            }
+
+            if (mucus === 'kuning') {
+                panel.style.background = "#ffebee";
+                panel.style.borderColor = "var(--danger-red)";
+                outputText.innerHTML = "⚠️ JANGAN INSEMINASI<br><span style='font-size:12px; font-weight:normal;'>Hasil Evaluasi: Kontraindikasi, Sapi Kemungkinan Sakit/Bunting.</span>";
+                outputText.style.color = "var(--danger-red)";
+            }
+            else if (mucus === 'transparant') {
+                panel.style.background = "#fff8e1";
+                panel.style.borderColor = "var(--warning-amber)";
+                outputText.innerHTML = "⏳ STANDBY / TUNGGU<br><span style='font-size:12px; font-weight:normal;'>Estrus Hari ke-1: Monitor grafik tren sekuensial LSTM hingga menuju puncak kesuburan.</span>";
+                outputText.style.color = "var(--warning-amber)";
+            }
+            else if (mucus === 'darah') {
+                const currentTemp = parseFloat(temperatureInput);
+                if (currentTemp >= 38.2 && currentTemp <= 39.5) {
+                    panel.style.background = "#e8f5e9";
+                    panel.style.borderColor = "var(--success-green)";
+                    outputText.innerHTML = "🔥 KEPUTUSAN: IB SEKARANG<br><span style='font-size:12px; font-weight:normal;'>Kombinasi Sempurna: Berada di Jendela Ovulasi Hari ke-3 & Suhu Fisiologis Optimal.</span>";
+                    outputText.style.color = "var(--success-green)";
+                } else {
+                    panel.style.background = "#fff8e1";
+                    panel.style.borderColor = "var(--warning-amber)";
+                    outputText.innerHTML = "⚠️ ANOMALIS TEMPERATUR<br><span style='font-size:12px; font-weight:normal;'>Lendir Hari ke-3 Terbaca Benar, Namun Nilai Suhu (${currentTemp}°C) Berada di Luar Kurva Subur.</span>";
+                    outputText.style.color = "var(--warning-amber)";
+                }
+            }
+
+            sendDataToBackend();
+        }
+
+        // AJAK SINKRONISASI TRANSMISI ENDPOINT PYTHON
+        function sendDataToBackend() {
+            const payload = {
+                farmer_name: currentSession.farmerName,
+                farm_address: currentSession.farmAddress,
+                cattle_id: currentSession.cattleId,
+                cattle_age: currentSession.cattleAge, // Sesuai Poin 3: Parameter payload umur sapi ditambahkan
+                yolo_mucus_color: currentSession.currentMucusColor,
+                manual_temperature: document.getElementById('dashTemperature').value,
+                esp32_resistance: document.getElementById('dashIotOhm').innerText,
+                lstm_history_sequence: currentSession.lstmTimeSeries
+            };
+
+            console.log("Transmitting Multi-Modal System Payload to Python Backend Ecosystem ->", payload);
+        }
+
+        // 6. Interactive Chat Interface Widgets & Head Petting Handler Logic 
+        function toggleChatWindow() {
+            // Animasi Love Dipicu Dulu Sebelum Chat Window Terbuka Sesuai Aturan Jeda Waktu
+            const heart = document.getElementById('heartIcon');
+            heart.style.display = 'block';
+            heart.style.animation = 'none';
+            heart.offsetHeight; 
+            heart.style.animation = 'floatUp 0.8s ease-out forwards';
+
+            setTimeout(() => {
+                const chat = document.getElementById('sacoChat');
+                chat.style.display = (chat.style.display === 'flex') ? 'none' : 'flex';
+            }, 400); 
+        }
+
+        function petCowAvatar(event) {
+            event.preventDefault();
+            const heart = document.getElementById('heartIcon');
+            heart.style.display = 'block';
+            heart.style.animation = 'none';
+            heart.offsetHeight; 
+            heart.style.animation = 'floatUp 0.8s ease-out forwards';
+
+            const b = document.getElementById('chatBody');
+            const logElement = document.createElement('div');
+            logElement.className = 'msg bot';
+            logElement.style.fontStyle = 'italic';
+            logElement.innerText = "*Mooo! Kepala berkilau SaCo dan headphone-nya terasa nyaman saat dielus.*";
+            b.appendChild(logElement);
+            b.scrollTop = b.scrollHeight;
+        }
+
+        function sendChatMessage() {
+            const inputField = document.getElementById('chatInput');
+            const chatLogBody = document.getElementById('chatBody');
+            if (!inputField.value.trim()) return;
+
+            const userTextElement = document.createElement('div');
+            userTextElement.className = 'msg user';
+            userTextElement.innerText = inputField.value;
+            chatLogBody.appendChild(userTextElement);
+
+            setTimeout(() => {
+                const systemReplyElement = document.createElement('div');
+                systemReplyElement.className = 'msg bot';
+                systemReplyElement.innerText = "Berdasarkan rujukan medis peternakan kredibel, siklus estrus berjalan rata-rata 21 hari sekali. Jendela paling sempit dan krusial adalah saat peralihan warna lendir dari transparan menuju bercak darah matang.";
+                chatLogBody.appendChild(systemReplyElement);
+                chatLogBody.scrollTop = chatLogBody.scrollHeight;
+            }, 600);
+
+            inputField.value = '';
+            chatLogBody.scrollTop = chatLogBody.scrollHeight;
+        }
+
+        // Main Launcher Initialization Trigger
+        window.onload = function () {
+            initEsp32TelemetryStream();
+        };
+    </script>
+</body>
+
+</html>

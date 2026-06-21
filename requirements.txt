@@ -1,0 +1,9 @@
+flask
+flask-cors
+numpy
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
+opencv-python-headless
+joblib
+google-genai
+gunicorn
