@@ -552,7 +552,7 @@
             lstmTimeSeries: []
         };
 
-        const BACKEND_URL = 'http://localhost:5000';
+        const BACKEND_URL = '';
 
         function switchTab(event, targetPaneId) {
             document.querySelectorAll('.view-pane').forEach(p => p.classList.remove('active-pane'));
@@ -878,25 +878,36 @@
             b.scrollTop = b.scrollHeight;
         }
 
-        function sendChatMessage() {
+        async function sendChatMessage() {
             const inputField = document.getElementById('chatInput');
             const chatLogBody = document.getElementById('chatBody');
             if (!inputField.value.trim()) return;
 
+            const userText = inputField.value;
             const userTextElement = document.createElement('div');
             userTextElement.className = 'msg user';
-            userTextElement.innerText = inputField.value;
+            userTextElement.innerText = userText;
             chatLogBody.appendChild(userTextElement);
+            inputField.value = '';
+            chatLogBody.scrollTop = chatLogBody.scrollHeight;
 
-            setTimeout(() => {
+            try {
+                const res = await fetch(BACKEND_URL + '/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: userText })
+                });
+                const data = await res.json();
                 const systemReplyElement = document.createElement('div');
                 systemReplyElement.className = 'msg bot';
-                systemReplyElement.innerText = "Berdasarkan rujukan medis peternakan kredibel, siklus estrus berjalan rata-rata 21 hari sekali. Jendela paling sempit dan krusial adalah saat peralihan warna lendir dari transparan menuju bercak darah matang.";
+                systemReplyElement.innerText = data.reply || 'Maaf, tidak ada respons.';
                 chatLogBody.appendChild(systemReplyElement);
-                chatLogBody.scrollTop = chatLogBody.scrollHeight;
-            }, 600);
-
-            inputField.value = '';
+            } catch (err) {
+                const errEl = document.createElement('div');
+                errEl.className = 'msg bot';
+                errEl.innerText = 'Gagal terhubung ke SaCo backend.';
+                chatLogBody.appendChild(errEl);
+            }
             chatLogBody.scrollTop = chatLogBody.scrollHeight;
         }
 
