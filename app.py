@@ -178,7 +178,7 @@ Tolak topik lain dengan sopan dalam Bahasa Indonesia sederhana."""
 
 @app.route('/')
 def index():
-    return app.send_static_file('MeTernak.html')
+    return app.send_static_file('MeTernak(yolo).html')
 
 if __name__ == '__main__':
     init_db()
