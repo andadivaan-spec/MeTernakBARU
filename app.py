@@ -3,7 +3,7 @@ from flask_cors import CORS
 import sqlite3, os, json, numpy as np, torch, torch.nn as nn
 from datetime import datetime
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='.', static_url_path='')
 CORS(app)
 from chatbot import chatbot_bp
 app.register_blueprint(chatbot_bp)
@@ -175,6 +175,10 @@ Tolak topik lain dengan sopan dalam Bahasa Indonesia sederhana."""
         config={"system_instruction": SYSTEM_PROMPT},
         contents=data.get('message'))
     return jsonify({'reply': response.text})
+
+@app.route('/')
+def index():
+    return app.send_static_file('MeTernak.html')
 
 if __name__ == '__main__':
     init_db()
