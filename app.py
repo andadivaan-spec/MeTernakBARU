@@ -10,16 +10,13 @@ app.register_blueprint(chatbot_bp)
 
 DB_PATH = 'meternak.db'
 
-# ─── MODELS ───────────────────────────────────────────────────────────────────
-# YOLO
 try:
     import cv2
     yolo_net = cv2.dnn.readNetFromONNX('best.onnx')
-    print("✅ YOLO loaded")
+    print("YOLO loaded")
 except Exception as e:
-    yolo_net = None; print(f"⚠️ YOLO: {e}")
+    yolo_net = None; print(f"YOLO: {e}")
 
-# LSTM — arsitektur harus sama persis dengan lstm_estrus_best.pth
 class LSTMModel(nn.Module):
     def __init__(self, hidden=64, layers=2, drop=0.3):
         super().__init__()
@@ -35,24 +32,22 @@ class LSTMModel(nn.Module):
 lstm_model = LSTMModel()
 if os.path.exists('lstm_estrus_best.pth'):
     lstm_model.load_state_dict(torch.load('lstm_estrus_best.pth', map_location='cpu'))
-    lstm_model.eval(); print("✅ LSTM loaded")
+    lstm_model.eval(); print("LSTM loaded")
 else:
-    print("⚠️ lstm_estrus_best.pth not found")
+    print("lstm_estrus_best.pth not found")
 
-# Random Forest
 try:
     import joblib
     rf_model = joblib.load('rf_model.pkl')
-    print("✅ RF loaded")
+    print("RF loaded")
 except:
-    rf_model = None; print("⚠️ RF not found")
+    rf_model = None; print("RF not found")
 
-NAMES        = ['Day1', 'Day2', 'Day3', 'Kuning']
-MAX_LEN      = 3
-FEAT_MAX     = [3.0, 72.0, 1.0]
+NAMES    = ['Day1', 'Day2', 'Day3', 'Kuning']
+MAX_LEN  = 3
+FEAT_MAX = [3.0, 72.0, 1.0]
 MUCUS_LABELS = {0: 'transparant', 1: 'darah', 2: 'putih', 3: 'kuning'}
 
-# ─── DATABASE ─────────────────────────────────────────────────────────────────
 def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -71,7 +66,6 @@ def init_db():
         resistance INTEGER, recorded_at TEXT)''')
     conn.commit(); conn.close()
 
-# ─── HELPERS ──────────────────────────────────────────────────────────────────
 def detect_yolo(image_bytes):
     if yolo_net is None: return 0, 0.0
     nparr = np.frombuffer(image_bytes, np.uint8)
@@ -90,14 +84,13 @@ def predict_lstm(seq):
         p = lstm_model(x).cpu().squeeze().numpy()
     idx  = int(np.argmax(p))
     prob = round(float(p[idx]), 3)
-
-    # Ovulation peak probability (Day2 & Day3 closest to peak)
     ovulation_peak_prob = round(float(0.1*p[0] + 0.45*p[1] + 0.45*p[2]), 4)
-
+    window_remaining = max(0, 2 - idx) if idx < 3 else 0
     return {
         'predicted'           : NAMES[idx],
         'probability'         : f"{round(prob * 100, 1)}%",
         'ovulation_peak_prob' : ovulation_peak_prob,
+        'window_remaining'    : window_remaining,
         'p_day1'              : round(float(p[0]), 3),
         'p_day2'              : round(float(p[1]), 3),
         'p_day3'              : round(float(p[2]), 3),
@@ -116,7 +109,6 @@ def predict_rf(lstm_out, temperature, resistance, mucus_type, confidence):
         return 'IB_SEKARANG'
     return 'STANDBY'
 
-# ─── ENDPOINTS ────────────────────────────────────────────────────────────────
 @app.route('/health')
 def health():
     return jsonify({'status': 'ok', 'yolo': yolo_net is not None, 'rf': rf_model is not None})
@@ -135,19 +127,19 @@ def esp32():
 
 @app.route('/api/tracking', methods=['POST'])
 def tracking_json():
-    data = request.get_json()
-    cattle_id = data.get('cattle_id')
+    data       = request.get_json()
+    cattle_id  = data.get('cattle_id')
     mucus_color = data.get('mucus_color')
     temperature = data.get('temperature')
-    resistance = data.get('resistance')
-    
-    mucus_map = {'transparant': 1, 'darah': 2, 'kuning': 0}
+    resistance  = data.get('resistance')
+
+    mucus_map  = {'transparant': 1, 'darah': 2, 'kuning': 0}
     mucus_type = mucus_map.get(mucus_color, 1)
-    
-    seq = [[mucus_type, 0, 0.8]]
+
+    seq      = [[mucus_type, 0, 0.8]]
     lstm_out = predict_lstm(seq)
     decision = predict_rf(lstm_out, temperature, resistance, mucus_type, 0.8)
-    
+
     conn = get_db()
     conn.execute('''INSERT INTO tracking
         (cattle_id, mucus_color, temperature, resistance, lstm_result, decision, recorded_at)
@@ -155,7 +147,7 @@ def tracking_json():
         (cattle_id, mucus_color, temperature, resistance,
          json.dumps(lstm_out), decision, datetime.now().isoformat()))
     conn.commit(); conn.close()
-    
+
     return jsonify({'lstm': lstm_out, 'decision': decision})
 
 @app.route('/api/detect', methods=['POST'])
@@ -196,15 +188,8 @@ def detect():
          temperature, resistance, json.dumps(lstm_out), decision, datetime.now().isoformat()))
     conn.commit(); conn.close()
 
-    return jsonify({
-        'cattle_id'  : cattle_id,
-        'mucus_color': mucus_color,
-        'confidence' : confidence,
-        'temperature': temperature,
-        'resistance' : resistance,
-        'lstm'       : lstm_out,   # predicted, probability, ovulation_peak_prob
-        'decision'   : decision
-    })
+    return jsonify({'cattle_id': cattle_id, 'mucus_color': mucus_color,
+                    'confidence': confidence, 'lstm': lstm_out, 'decision': decision})
 
 @app.route('/api/tracking/<cattle_id>')
 def riwayat(cattle_id):
@@ -215,27 +200,45 @@ def riwayat(cattle_id):
     conn.close()
     return jsonify([dict(r) for r in rows])
 
+@app.route('/api/cows/history')
+def histori_siklus():
+    conn = get_db()
+    rows = conn.execute('SELECT cattle_id, MAX(recorded_at) as last_record FROM tracking GROUP BY cattle_id').fetchall()
+    result = []
+    for row in rows:
+        cid = row['cattle_id']
+        latest  = conn.execute('SELECT lstm_result FROM tracking WHERE cattle_id=? ORDER BY recorded_at DESC LIMIT 1', (cid,)).fetchone()
+        last_ib = conn.execute("SELECT recorded_at FROM tracking WHERE cattle_id=? AND decision='IB_SEKARANG' ORDER BY recorded_at DESC LIMIT 1", (cid,)).fetchone()
+        lstm_data = json.loads(latest['lstm_result']) if latest and latest['lstm_result'] else {}
+        result.append({'cattle_id': cid, 'last_record': row['last_record'],
+                       'estimated_day': lstm_data.get('predicted'), 'last_ib': last_ib['recorded_at'] if last_ib else None})
+    conn.close()
+    return jsonify(result)
+
 @app.route('/api/chat', methods=['POST'])
 def chat():
     from google import genai
     SYSTEM_PROMPT = """Saya SaCo, asisten ternak terpercaya Anda.
 HANYA jawab seputar masa kesuburan, siklus reproduksi, tanda estrus, dan waktu IB sapi betina.
 Tolak topik lain dengan sopan dalam Bahasa Indonesia sederhana."""
-    data     = request.get_json()
-    client   = genai.Client(api_key=os.environ.get('GEMINI_API_KEY'))
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
-        config={"system_instruction": SYSTEM_PROMPT},
-        contents=data.get('message'))
-    return jsonify({'reply': response.text})
+    data   = request.get_json()
+    client = genai.Client(api_key=os.environ.get('GEMINI_API_KEY'))
+    try:
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            config={"system_instruction": SYSTEM_PROMPT},
+            contents=data.get('message'))
+        return jsonify({'reply': response.text})
+    except Exception:
+        return jsonify({'reply': 'SaCo sedang sibuk, coba lagi dalam beberapa detik.'}), 200
 
 with app.app_context():
     init_db()
+
 @app.route('/')
 def index():
     return app.send_static_file('MeTernak (yolo).html')
 
 if __name__ == '__main__':
-    init_db()
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
