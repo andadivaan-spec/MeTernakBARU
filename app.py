@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import sqlite3, os, json, numpy as np, torch, torch.nn as nn
 from datetime import datetime
+from flask import send_from_directory
 
 app = Flask(__name__)
 CORS(app)
@@ -174,7 +175,7 @@ def riwayat(cattle_id):
 
 @app.route('/')
 def index():
-    return app.send_static_file('MeTernak (yolo).html')
+    return send_from_directory('.', 'MeTernak (yolo).html')
 
 with app.app_context():
     init_db()
