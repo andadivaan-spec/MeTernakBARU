@@ -7,4 +7,4 @@ opencv-python-headless
 joblib
 google-genai
 gunicorn
-scikit-learn
+scikit-learn==1.6.1
