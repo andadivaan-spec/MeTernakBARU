@@ -375,9 +375,9 @@
                 <img src="LOGO.png" alt="MeTernak" class="logo-img">
             </div>
             <div class="nav-group">
-                <button class="nav-item active" onclick="switchTab(event, 'dashboardPane')">Dashboard
+                <button class="nav-item" onclick="switchTab(event, 'dashboardPane')">Dashboard
                     Pemantauan</button>
-                <button class="nav-item" onclick="switchTab(event, 'pengaturanDataPane')">Pengaturan Data Sapi</button>
+                <button class="nav-item active" onclick="switchTab(event, 'pengaturanDataPane')">Pengaturan Data Sapi</button>
                 <button class="nav-item" onclick="switchTab(event, 'historiSiklusPane'); loadHistoriSiklus();">Histori
                     Siklus Sapi</button>
             </div>
@@ -388,7 +388,7 @@
 
     <main class="main-workspace">
 
-        <div id="dashboardPane" class="view-pane active-pane">
+        <div id="dashboardPane" class="view-pane">
             <header class="top-navbar">
                 <div>
                     <h2 id="dashHeadline">Pemantauan Parameter Lapangan</h2>
@@ -446,6 +446,10 @@
                     Belum ada data deteksi LSTM.
                 </div>
                 <div id="probBarsContainer" style="display:none; flex-direction:column; gap:16px;">
+                    <div id="lstmCattleHeader" style="display:flex; justify-content:space-between; align-items:center; background:#faf9f7; border:1px solid var(--border-light); border-radius:8px; padding:10px 14px; margin-bottom:4px;">
+                        <span style="font-size:13px; font-weight:700; color:var(--primary-brown);" id="lstmCattleId">ID Sapi: -</span>
+                        <span style="font-size:12px; color:#7c7067;" id="lstmDayLabel">Hari ke-: -</span>
+                    </div>
                     <div class="prob-bar-wrap">
                         <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px;">
                             <span>Hari 1 — Transparan</span><span id="pDay1Label" style="font-weight:700;">0%</span>
@@ -483,7 +487,7 @@
             </section>
         </div>
 
-        <div id="pengaturanDataPane" class="view-pane">
+        <div id="pengaturanDataPane" class="view-pane active-pane">
             <header class="top-navbar">
                 <h2>Formulir Pengaturan Data (Dataset Identitas Sapi & Pemilik)</h2>
             </header>
@@ -572,17 +576,26 @@
 
     <script>
         let currentSession = {
-            farmerName: 'Peternak Umum',
-            farmAddress: 'Kandang Utama',
-            cattleId: 'Belum Diatur',
-            cattleAge: 'Belum Diatur',
+            farmerName: '',
+            farmAddress: '',
+            cattleId: '',
+            cattleAge: '',
             currentMucusColor: '',
-            lstmTimeSeries: []
+            lstmTimeSeries: [],
+            isRegistered: false
         };
 
         const BACKEND_URL = 'https://meternakbaru-production.up.railway.app';
 
         function switchTab(event, targetPaneId) {
+            if (targetPaneId !== 'pengaturanDataPane' && !currentSession.isRegistered) {
+                alert("Mohon isi Data Diri Peternak & Sapi terlebih dahulu di tab 'Pengaturan Data Sapi' sebelum mengisi parameter.");
+                document.querySelectorAll('.view-pane').forEach(p => p.classList.remove('active-pane'));
+                document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+                document.getElementById('pengaturanDataPane').classList.add('active-pane');
+                document.querySelectorAll('.nav-item')[1].classList.add('active');
+                return;
+            }
             document.querySelectorAll('.view-pane').forEach(p => p.classList.remove('active-pane'));
             document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
             document.getElementById(targetPaneId).classList.add('active-pane');
@@ -604,15 +617,17 @@
             currentSession.farmAddress = address;
             currentSession.cattleId = cid;
             currentSession.cattleAge = cage;
+            currentSession.isRegistered = true;
 
             document.getElementById('sidebarSessionStatus').innerText = `ID Sapi: ${cid} (${cage})`;
             document.getElementById('dashHeadline').innerText = `Pemantauan Pembiakan: ${cid}`;
             document.getElementById('dashSubline').innerText = `Pemilik: ${name} | Lokasi: ${address} | Umur: ${cage}`;
 
             alert(`Dataset Identitas [${cid}] Berhasil Diperbarui secara lokal dan siap disinkronisasikan!`);
-            switchTab(null, 'dashboardPane');
+            document.querySelectorAll('.view-pane').forEach(p => p.classList.remove('active-pane'));
+            document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+            document.getElementById('dashboardPane').classList.add('active-pane');
             document.querySelectorAll('.nav-item')[0].classList.add('active');
-            document.querySelectorAll('.nav-item')[1].classList.remove('active');
         }
 
         async function startWebcam() {
@@ -773,6 +788,9 @@
         }
 
         function runHybridInferencePipeline() {
+            if (!currentSession.isRegistered) {
+                return;
+            }
             const mucus = currentSession.currentMucusColor;
             const temperatureInput = document.getElementById('dashTemperature').value;
             const panel = document.getElementById('decisionPanel');
@@ -815,6 +833,57 @@
             sendDataToBackend();
         }
 
+        function computeLocalLstmEstimate(mucusColor, temperature) {
+            // Estimasi probabilitas lokal sebagai fallback jika backend belum
+            // mengembalikan field "lstm" (misalnya saat backend down/redeploy).
+            let p1 = 0.05, p2 = 0.05, p3 = 0.05, pk = 0.05, predicted = '-', dayLabel = '-';
+            if (mucusColor === 'transparant') {
+                p1 = 0.78; p2 = 0.15; p3 = 0.05; pk = 0.02;
+                predicted = 'Estrus Hari ke-1 (Transparan)';
+                dayLabel = 'Hari ke-1';
+            } else if (mucusColor === 'darah') {
+                p1 = 0.05; p2 = 0.15; p3 = 0.75; pk = 0.05;
+                predicted = 'Estrus Hari ke-3 (Darah/Ovulasi)';
+                dayLabel = 'Hari ke-3';
+            } else if (mucusColor === 'kuning') {
+                p1 = 0.05; p2 = 0.05; p3 = 0.05; pk = 0.85;
+                predicted = 'Abnormal (Lendir Kuning)';
+                dayLabel = 'Tidak terjadwal';
+            }
+            return {
+                p_day1: p1, p_day2: p2, p_day3: p3, p_kuning: pk,
+                predicted: predicted,
+                day_label: dayLabel,
+                window_remaining: mucusColor === 'darah' ? 0 : (mucusColor === 'transparant' ? 2 : null),
+                source: 'local'
+            };
+        }
+
+        function renderLstmPanel(lstm) {
+            document.getElementById('lstmEmptyMsg').style.display = 'none';
+            const bars = document.getElementById('probBarsContainer');
+            bars.style.display = 'flex';
+
+            document.getElementById('lstmCattleId').innerText = 'ID Sapi: ' + (currentSession.cattleId || '-');
+            document.getElementById('lstmDayLabel').innerText = 'Estimasi: ' + (lstm.day_label || (lstm.window_remaining !== null && lstm.window_remaining !== undefined ? ('Sisa ' + lstm.window_remaining + ' hari') : '-'));
+
+            const p1 = (lstm.p_day1 * 100).toFixed(1);
+            const p2 = (lstm.p_day2 * 100).toFixed(1);
+            const p3 = (lstm.p_day3 * 100).toFixed(1);
+            const pk = (lstm.p_kuning * 100).toFixed(1);
+            document.getElementById('pDay1Bar').style.width = p1 + '%';
+            document.getElementById('pDay1Label').innerText = p1 + '%';
+            document.getElementById('pDay2Bar').style.width = p2 + '%';
+            document.getElementById('pDay2Label').innerText = p2 + '%';
+            document.getElementById('pDay3Bar').style.width = p3 + '%';
+            document.getElementById('pDay3Label').innerText = p3 + '%';
+            document.getElementById('pKuningBar').style.width = pk + '%';
+            document.getElementById('pKuningLabel').innerText = pk + '%';
+            document.getElementById('lstmPredicted').innerText = 'Prediksi: ' + lstm.predicted +
+                (lstm.window_remaining !== null && lstm.window_remaining !== undefined ? ' · Sisa jendela: ' + lstm.window_remaining + ' hari' : '') +
+                (lstm.source === 'local' ? ' (estimasi lokal — backend belum merespons)' : '');
+        }
+
         async function sendDataToBackend() {
             const payload = {
                 cattle_id: currentSession.cattleId,
@@ -832,26 +901,13 @@
                 });
                 const data = await res.json();
                 if (data.lstm) {
-                    document.getElementById('lstmEmptyMsg').style.display = 'none';
-                    const bars = document.getElementById('probBarsContainer');
-                    bars.style.display = 'flex';
-                    const p1 = (data.lstm.p_day1 * 100).toFixed(1);
-                    const p2 = (data.lstm.p_day2 * 100).toFixed(1);
-                    const p3 = (data.lstm.p_day3 * 100).toFixed(1);
-                    const pk = (data.lstm.p_kuning * 100).toFixed(1);
-                    document.getElementById('pDay1Bar').style.width = p1 + '%';
-                    document.getElementById('pDay1Label').innerText = p1 + '%';
-                    document.getElementById('pDay2Bar').style.width = p2 + '%';
-                    document.getElementById('pDay2Label').innerText = p2 + '%';
-                    document.getElementById('pDay3Bar').style.width = p3 + '%';
-                    document.getElementById('pDay3Label').innerText = p3 + '%';
-                    document.getElementById('pKuningBar').style.width = pk + '%';
-                    document.getElementById('pKuningLabel').innerText = pk + '%';
-                    document.getElementById('lstmPredicted').innerText = 'Prediksi: ' + data.lstm.predicted +
-                        (data.lstm.window_remaining !== null ? ' · Sisa jendela: ' + data.lstm.window_remaining + ' hari' : '');
+                    renderLstmPanel(data.lstm);
+                } else {
+                    renderLstmPanel(computeLocalLstmEstimate(payload.mucus_color, payload.temperature));
                 }
             } catch (err) {
-                console.warn('Backend belum berjalan:', err.message);
+                console.warn('Backend belum berjalan, pakai estimasi lokal:', err.message);
+                renderLstmPanel(computeLocalLstmEstimate(payload.mucus_color, payload.temperature));
             }
         }
 
@@ -903,6 +959,17 @@
             b.scrollTop = b.scrollHeight;
         }
 
+        function localSaCoFallbackReply(message) {
+            const m = message.toLowerCase();
+            if (m.includes('estrus') || m.includes('birahi') || m.includes('kawin') || m.includes('ib') || m.includes('inseminasi')) {
+                return "Siklus estrus sapi betina rata-rata berlangsung 21 hari (kisaran 18–24 hari). " +
+                    "Tanda birahi: gelisah, vulva bengkak dan memerah, keluar lendir bening (hari ke-1), lalu lendir mulai bercampur darah (hari ke-3) menandakan ovulasi sudah/segera terjadi. " +
+                    "Waktu Inseminasi Buatan (IB) paling tepat adalah 12 jam setelah tanda birahi puncak terlihat (umumnya estrus hari ke-2 menuju ke-3). " +
+                    "(Catatan: jawaban ini estimasi offline karena server SaCo sedang tidak dapat dihubungi.)";
+            }
+            return "Maaf, koneksi ke server SaCo sedang terganggu sehingga saya hanya bisa menjawab pertanyaan dasar seputar estrus dan IB sapi untuk saat ini. Coba tanyakan seputar siklus birahi atau waktu inseminasi.";
+        }
+
         async function sendChatMessage() {
             const inputField = document.getElementById('chatInput');
             const chatLogBody = document.getElementById('chatBody');
@@ -916,23 +983,23 @@
             inputField.value = '';
             chatLogBody.scrollTop = chatLogBody.scrollHeight;
 
+            const systemReplyElement = document.createElement('div');
+            systemReplyElement.className = 'msg bot';
+
             try {
                 const res = await fetch(BACKEND_URL + '/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ message: userText })
                 });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
                 const data = await res.json();
-                const systemReplyElement = document.createElement('div');
-                systemReplyElement.className = 'msg bot';
-                systemReplyElement.innerText = data.reply || 'Maaf, tidak ada respons.';
-                chatLogBody.appendChild(systemReplyElement);
+                systemReplyElement.innerText = data.reply || localSaCoFallbackReply(userText);
             } catch (err) {
-                const errEl = document.createElement('div');
-                errEl.className = 'msg bot';
-                errEl.innerText = 'Gagal terhubung ke SaCo backend.';
-                chatLogBody.appendChild(errEl);
+                console.warn('Chat backend gagal, pakai fallback lokal:', err.message);
+                systemReplyElement.innerText = localSaCoFallbackReply(userText);
             }
+            chatLogBody.appendChild(systemReplyElement);
             chatLogBody.scrollTop = chatLogBody.scrollHeight;
         }
 
