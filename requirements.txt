@@ -7,3 +7,4 @@ opencv-python-headless
 joblib
 google-genai
 gunicorn
+scikit-learn

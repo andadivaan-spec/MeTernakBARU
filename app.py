@@ -20,7 +20,6 @@ class LSTMModel(nn.Module):
         super().__init__()
         self.lstm = nn.LSTM(3,128,2,batch_first=True,dropout=.4)
         self.fc   = nn.Sequential(nn.Linear(128,64),nn.ReLU(),nn.Dropout(.3),
-                                  nn.Linear(64,16),nn.ReLU(),nn.Dropout(.2),
                                   nn.Linear(16,4),nn.Softmax(dim=-1))
     def forward(self,x): return self.fc(self.lstm(x)[0][:,-1,:])
 
