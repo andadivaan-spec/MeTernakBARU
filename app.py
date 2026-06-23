@@ -177,6 +177,9 @@ def riwayat(cattle_id):
 def index():
     return send_from_directory('.', 'MeTernak (yolo).html')
 
+@app.route('/<path:filename>')        
+def static_files(filename):
+    return send_from_directory('.', filename)
 with app.app_context():
     init_db()
 
