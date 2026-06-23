@@ -819,11 +819,11 @@
                 });
                 const data = await res.json();
                 if (data.lstm) {
-                    box.style.display = 'block';
-                    document.getElementById('lstmDay').innerText = 'Hari ke-' + data.lstm.estimated_day;
-                    document.getElementById('lstmProb').innerText = 'p = ' + (data.lstm.p_day2 * 100).toFixed(0) + '%';
-                    document.getElementById('lstmWindow').innerText = 'sisa jendela ' + data.lstm.window_remaining + ' hari';
-                }
+    box.style.display = 'block';
+    document.getElementById('lstmDay').innerText = 'Fase: ' + data.lstm.predicted;
+    document.getElementById('lstmProb').innerText = 'p = ' + (data.lstm.p_day2 * 100).toFixed(0) + '%';
+    document.getElementById('lstmWindow').innerText = 'sisa jendela ' + (data.lstm.window_remaining ?? '-') + ' hari';
+}
             } catch (err) {
                 if (box) { box.style.display = 'block'; box.innerHTML = '<b>Output LSTM:</b> backend belum terhubung'; }
                 console.warn('Backend belum berjalan:', err.message);
