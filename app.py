@@ -30,8 +30,8 @@ class LSTMModel(nn.Module):
         return self.fc(self.lstm(x)[0][:, -1, :])
 
 lstm_model = LSTMModel()
-if os.path.exists('lstm_estrus_best.pth'):
-    lstm_model.load_state_dict(torch.load('lstm_estrus_best.pth', map_location='cpu'))
+if os.path.exists('LSTM.pth'):
+    lstm_model.load_state_dict(torch.load('LSTM.pth', map_location='cpu'))
     lstm_model.eval(); print("LSTM loaded")
 else:
     print("lstm_estrus_best.pth not found")
