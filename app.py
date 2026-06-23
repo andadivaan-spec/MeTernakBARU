@@ -34,14 +34,14 @@ if os.path.exists('LSTM.pth'):
     lstm_model.load_state_dict(torch.load('LSTM.pth', map_location='cpu'))
     lstm_model.eval(); print("LSTM loaded")
 else:
-    print("lstm_estrus_best.pth not found")
+    print("lstm.pth not found")
 
 try:
     import joblib
     rf_model = joblib.load('rf_model.pkl')
-    print("RF loaded")
+    print("rf_model loaded")
 except:
-    rf_model = None; print("RF not found")
+    rf_model = None; print("rf_model found")
 
 NAMES    = ['Day1', 'Day2', 'Day3', 'Kuning']
 MAX_LEN  = 3
