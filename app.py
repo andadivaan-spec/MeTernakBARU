@@ -133,6 +133,31 @@ def esp32():
     conn.commit(); conn.close()
     return jsonify({'status': 'ok', 'resistance': resistance}), 201
 
+@app.route('/api/tracking', methods=['POST'])
+def tracking_json():
+    data = request.get_json()
+    cattle_id = data.get('cattle_id')
+    mucus_color = data.get('mucus_color')
+    temperature = data.get('temperature')
+    resistance = data.get('resistance')
+    
+    mucus_map = {'transparant': 1, 'darah': 2, 'kuning': 0}
+    mucus_type = mucus_map.get(mucus_color, 1)
+    
+    seq = [[mucus_type, 0, 0.8]]
+    lstm_out = predict_lstm(seq)
+    decision = predict_rf(lstm_out, temperature, resistance, mucus_type, 0.8)
+    
+    conn = get_db()
+    conn.execute('''INSERT INTO tracking
+        (cattle_id, mucus_color, temperature, resistance, lstm_result, decision, recorded_at)
+        VALUES (?,?,?,?,?,?,?)''',
+        (cattle_id, mucus_color, temperature, resistance,
+         json.dumps(lstm_out), decision, datetime.now().isoformat()))
+    conn.commit(); conn.close()
+    
+    return jsonify({'lstm': lstm_out, 'decision': decision})
+
 @app.route('/api/detect', methods=['POST'])
 def detect():
     cattle_id   = request.form.get('cattle_id')
